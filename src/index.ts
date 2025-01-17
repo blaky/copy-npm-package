@@ -60,10 +60,6 @@ class RegistryConfig {
         return `${this.url}/${encodeURIComponent(packageName)}`;
     }
 
-    getPackageTarballUrl(packageName: string, version: string): string {
-        // "https://pkgs.dev.azure.com/Sage-LiveServices/_packaging/Sage-ERP/npm/registry/@sage/xtrem-ui/-/xtrem-ui-51.0.19.tgz
-        return `${this.url}/${encodeURIComponent(packageName)}/-/${packageName}-${version}.tgz`;
-    }
 }
 
 (async function () {
