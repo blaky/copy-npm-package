@@ -1,0 +1,39 @@
+{
+  "name": "copy-npm-package",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "scripts": {
+    "prepare": "tsc",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/blaky/copy-npm-package.git"
+  },
+  "bin": {
+    "copy-npm-package": "./bin/copy-npm-package"
+  },
+  "files": [
+    "build",
+    "bin"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.7.9",
+    "command-line-args": "^6.0.1",
+    "lodash": "^4.17.21",
+    "ssri": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/command-line-args": "^5.2.3",
+    "@types/lodash": "^4.17.14",
+    "@types/node": "^22.10.7",
+    "@types/npm": "^7.19.3",
+    "@types/ssri": "^7.1.5",
+    "typescript": "^5.7.3"
+  }
+}
