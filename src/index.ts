@@ -105,7 +105,6 @@ class RegistryConfig {
     for (const packageVersion of packageVersionsToCopy) {
         console.log(`Downloading ${packageVersion}...`);
         const versionDetails = sourcePackageInfo.data.versions[packageVersion];
-        console.log(versionDetails);
         const downloadedPackage = await axios.get(versionDetails.dist.tarball, {
             headers: sourceRegistry.getAuthHeaders(),
             responseType: 'arraybuffer',
@@ -141,13 +140,13 @@ class RegistryConfig {
             },
         };
 
-        const uploaded = await axios.put(targetRegistry.getPackageUrl(options.package), payload, {
+        await axios.put(targetRegistry.getPackageUrl(options.package), payload, {
             headers: {
                 'Content-Type': 'application/json',
                 ...targetRegistry.getAuthHeaders(),
             },
         });
-        console.log(`Uploaded ${packageVersion}...`);
+        console.log(`Uploaded ${packageVersion}.`);
     }
 
 })().catch(console.error)
