@@ -116,7 +116,6 @@ export default async function copyPackageVersions({
 
         console.log(`Downloading ${packageVersion}...`);
         const versionDetails = sourcePackageInfo.data.versions[packageVersion];
-        console.log(versionDetails.dist)
         const downloadedPackage = await axios.get(versionDetails.dist.tarball, {
             headers: sourceRegistry.getAuthHeaders(),
             responseType: 'arraybuffer',
