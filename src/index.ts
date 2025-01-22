@@ -20,6 +20,7 @@ interface NpmRegistryPackageInfo {
     rev: string;
     name: string;
     versions: Record<string, NpmRegistryPackageVersionInfo>;
+    time: Record<string, string>;
 }
 
 class RegistryConfig {
@@ -62,45 +63,60 @@ class RegistryConfig {
 
 }
 
-(async function () {
-    const options = commandLineArgs([
-        { name: 'from', type: String },
-        { name: 'to', type: String },
-        { name: 'from-token', type: String },
-        { name: 'to-token', type: String },
-        { name: 'from-username', type: String },
-        { name: 'from-password', type: String },
-        { name: 'to-username', type: String },
-        { name: 'to-password', type: String },
-        { name: 'package', type: String }
-    ]);
+interface CopyPackageVersionsOptions{
+    from: string;
+    to: string;
+    fromToken?: string;
+    toToken?: string;
+    fromUsername?: string;
+    fromPassword?: string;
+    toUsername?: string;
+    toPassword?: string;
+    package: string;
+    after?: Date;
+}
 
-    if (!options.from || !options.to) {
-        console.error('Missing required arguments: from and to');
-        process.exit(1);
-    }
+export default async function copyPackageVersions({
+    from,
+    to,
+    fromToken,
+    toToken,
+    fromUsername,
+    fromPassword,
+    toUsername,
+    toPassword,
+    package:packageName,
+    after= new Date(0),
+}:CopyPackageVersionsOptions) {
 
-    const sourceRegistry = new RegistryConfig('Source registry', options.from, options['from-token'], options['from-username'], options['from-password']);
-    const targetRegistry = new RegistryConfig('Target registry', options.to, options['to-token'], options['to-username'], options['to-password']);
+    const sourceRegistry = new RegistryConfig('Source registry', from, fromToken, fromUsername, fromPassword);
+    const targetRegistry = new RegistryConfig('Target registry', to, toToken, toUsername, toPassword);
 
-    const sourcePackageInfo = await axios.get<NpmRegistryPackageInfo>(sourceRegistry.getPackageUrl(options.package), {
+    const sourcePackageInfo = await axios.get<NpmRegistryPackageInfo>(sourceRegistry.getPackageUrl(packageName), {
         headers: sourceRegistry.getAuthHeaders(),
     });
-    const targetPackageInfo = await axios.get<NpmRegistryPackageInfo>(targetRegistry.getPackageUrl(options.package), {
+    const targetPackageInfo = await axios.get<NpmRegistryPackageInfo>(targetRegistry.getPackageUrl(packageName), {
         headers: targetRegistry.getAuthHeaders(),
     });
 
     const packageVersionsToCopy = difference(Object.keys(sourcePackageInfo.data.versions), Object.keys(targetPackageInfo.data.versions));
-    if (packageVersionsToCopy.length===0){
-        console.log('No new versions to copy');
+    if (packageVersionsToCopy.length === 0) {
+        console.log('No new versions to copy.');
         process.exit(0);
     }
+
     console.log(`Package versions to be copied:`);
-    packageVersionsToCopy.forEach(v => console.log(v));
 
     for (const packageVersion of packageVersionsToCopy) {
+
+        if (sourcePackageInfo.data.time[packageVersion] && new Date(sourcePackageInfo.data.time[packageVersion]) < after) {
+            console.log(`Skipping ${packageVersion}. It was published on ${sourcePackageInfo.data.time[packageVersion]} which is before ${after.toISOString().substring(0, 10)}`);
+            continue;
+        }
+
         console.log(`Downloading ${packageVersion}...`);
         const versionDetails = sourcePackageInfo.data.versions[packageVersion];
+        console.log(versionDetails.dist)
         const downloadedPackage = await axios.get(versionDetails.dist.tarball, {
             headers: sourceRegistry.getAuthHeaders(),
             responseType: 'arraybuffer',
@@ -112,7 +128,7 @@ class RegistryConfig {
         console.log(`Uploading ${packageVersion}...`);
 
         // Read the tarball (created with `npm pack` or similar tool)
-        const tarballName = `${versionDetails.name.replace('/', '-').replace('@', '')}-${versionDetails.version}.tgz`;
+        const tarballName = `${versionDetails.name.replace("/", "-").replace("@", "")}-${versionDetails.version}.tgz`;
 
         // Build the payload
         const payload = {
@@ -125,6 +141,8 @@ class RegistryConfig {
                     ...versionDetails,
                     dist: {
                         tarball: `${sourceRegistry.getPackageUrl(versionDetails.name)}/-/${tarballName}`,
+                        integrity: versionDetails.dist.integrity,
+                        shasum: versionDetails.dist.shasum,
                     },
                 },
             },
@@ -136,7 +154,7 @@ class RegistryConfig {
             },
         };
 
-        await axios.put(targetRegistry.getPackageUrl(options.package), payload, {
+        await axios.put(targetRegistry.getPackageUrl(packageName), payload, {
             headers: {
                 'Content-Type': 'application/json',
                 ...targetRegistry.getAuthHeaders(),
@@ -144,5 +162,4 @@ class RegistryConfig {
         });
         console.log(`Uploaded ${packageVersion}.`);
     }
-
-})().catch(console.error)
+}

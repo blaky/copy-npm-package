@@ -4,6 +4,7 @@
   "compilerOptions": {
     "outDir": "./build",
     "esModuleInterop": true,
-    "lib": ["ES2024"]
+    "lib": ["ES2024"],
+    "declaration": true,
   }
 }
