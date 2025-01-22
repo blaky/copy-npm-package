@@ -114,7 +114,7 @@ export default async function copyPackageVersions({
     const packageVersionsToCopy = difference(Object.keys(sourcePackageInfo.data.versions), Object.keys(targetPackageInfo?.data?.versions || []));
     if (packageVersionsToCopy.length === 0) {
         console.log('No new versions to copy.');
-        process.exit(0);
+        return;
     }
 
     packageVersionsToCopy.sort();
