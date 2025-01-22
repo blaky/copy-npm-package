@@ -88,7 +88,6 @@ export default async function copyPackageVersions({
     package: packageName,
     after = new Date(0),
 }: CopyPackageVersionsOptions) {
-    console.log(`-------------------------`);
     console.log(`Copying ${packageName}...`);
 
     const sourceRegistry = new RegistryConfig('Source registry', from, fromToken, fromUsername, fromPassword);
@@ -119,27 +118,26 @@ export default async function copyPackageVersions({
 
     packageVersionsToCopy.sort();
 
-    console.log(`Package versions to be copied:`);
-    packageVersionsToCopy.forEach(version => console.log(`- ${version}`));
+    console.log(`Package versions to be copied: ${packageVersionsToCopy.join(', ')}`);
 
     for (const packageVersion of packageVersionsToCopy) {
 
         if (sourcePackageInfo.data.time[packageVersion] && new Date(sourcePackageInfo.data.time[packageVersion]) < after) {
-            console.log(`Skipping ${packageVersion}. It was published on ${sourcePackageInfo.data.time[packageVersion]} which is before ${after.toISOString().substring(0, 10)}`);
+            console.log(`Skipping ${packageName}@${packageVersion}. It was published on ${sourcePackageInfo.data.time[packageVersion].substring(0, 10)} which is before ${after.toISOString().substring(0, 10)}`);
             continue;
         }
 
-        console.log(`Downloading ${packageVersion}...`);
+        console.log(`Downloading ${packageName}@${packageVersion}...`);
         const versionDetails = sourcePackageInfo.data.versions[packageVersion];
         const downloadedPackage = await axios.get(versionDetails.dist.tarball, {
             headers: sourceRegistry.getAuthHeaders(),
             responseType: 'arraybuffer',
         });
-        console.log(`Downloaded ${packageVersion}.`);
+        console.log(`Downloaded ${packageName}@${packageVersion}.`);
 
         const base64EncodedPackageContent = Buffer.from(downloadedPackage.data, 'binary').toString('base64');
 
-        console.log(`Uploading ${packageVersion}...`);
+        console.log(`Uploading ${packageName}@${packageVersion}...`);
 
         // Read the tarball (created with `npm pack` or similar tool)
         const tarballName = `${versionDetails.name.replace("/", "-").replace("@", "")}-${versionDetails.version}.tgz`;
@@ -174,9 +172,8 @@ export default async function copyPackageVersions({
                 ...targetRegistry.getAuthHeaders(),
             },
         });
-        console.log(`Uploaded ${packageVersion}.`);
+        console.log(`Uploaded ${packageName}@${packageVersion}.`);
     }
 
     console.log(`Copying ${packageName} finished.`);
-    console.log(`-------------------------`);
 }
