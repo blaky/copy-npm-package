@@ -63,7 +63,7 @@ class RegistryConfig {
 
 }
 
-interface CopyPackageVersionsOptions{
+interface CopyPackageVersionsOptions {
     from: string;
     to: string;
     fromToken?: string;
@@ -85,9 +85,9 @@ export default async function copyPackageVersions({
     fromPassword,
     toUsername,
     toPassword,
-    package:packageName,
-    after= new Date(0),
-}:CopyPackageVersionsOptions) {
+    package: packageName,
+    after = new Date(0),
+}: CopyPackageVersionsOptions) {
 
     const sourceRegistry = new RegistryConfig('Source registry', from, fromToken, fromUsername, fromPassword);
     const targetRegistry = new RegistryConfig('Target registry', to, toToken, toUsername, toPassword);
@@ -105,7 +105,10 @@ export default async function copyPackageVersions({
         process.exit(0);
     }
 
+    packageVersionsToCopy.sort();
+
     console.log(`Package versions to be copied:`);
+    packageVersionsToCopy.forEach(version => console.log(`- ${version}`));
 
     for (const packageVersion of packageVersionsToCopy) {
 
