@@ -1,5 +1,5 @@
 import commandLineArgs from 'command-line-args'
-import axios, { RawAxiosRequestHeaders } from 'axios';
+import axios, { AxiosResponse, RawAxiosRequestHeaders } from 'axios';
 import { trimEnd, difference } from 'lodash';
 
 interface NpmRegistryPackageVersionInfo {
@@ -88,6 +88,8 @@ export default async function copyPackageVersions({
     package: packageName,
     after = new Date(0),
 }: CopyPackageVersionsOptions) {
+    console.log(`-------------------------`);
+    console.log(`Copying ${packageName}...`);
 
     const sourceRegistry = new RegistryConfig('Source registry', from, fromToken, fromUsername, fromPassword);
     const targetRegistry = new RegistryConfig('Target registry', to, toToken, toUsername, toPassword);
@@ -95,11 +97,21 @@ export default async function copyPackageVersions({
     const sourcePackageInfo = await axios.get<NpmRegistryPackageInfo>(sourceRegistry.getPackageUrl(packageName), {
         headers: sourceRegistry.getAuthHeaders(),
     });
-    const targetPackageInfo = await axios.get<NpmRegistryPackageInfo>(targetRegistry.getPackageUrl(packageName), {
-        headers: targetRegistry.getAuthHeaders(),
-    });
 
-    const packageVersionsToCopy = difference(Object.keys(sourcePackageInfo.data.versions), Object.keys(targetPackageInfo.data.versions));
+    let targetPackageInfo: AxiosResponse<NpmRegistryPackageInfo> | null = null;;
+
+    try {
+        targetPackageInfo = await axios.get<NpmRegistryPackageInfo>(targetRegistry.getPackageUrl(packageName), {
+            headers: targetRegistry.getAuthHeaders(),
+        });
+    } catch (err) {
+        if (err.response.status !== 404) {
+            throw err;
+        }
+        console.log(`Package ${packageName} does not exist in the target registry.`);
+    }
+
+    const packageVersionsToCopy = difference(Object.keys(sourcePackageInfo.data.versions), Object.keys(targetPackageInfo?.data?.versions || []));
     if (packageVersionsToCopy.length === 0) {
         console.log('No new versions to copy.');
         process.exit(0);
@@ -164,4 +176,7 @@ export default async function copyPackageVersions({
         });
         console.log(`Uploaded ${packageVersion}.`);
     }
+
+    console.log(`Copying ${packageName} finished.`);
+    console.log(`-------------------------`);
 }
