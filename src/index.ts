@@ -1,6 +1,6 @@
-import commandLineArgs from 'command-line-args'
 import axios, { AxiosResponse, RawAxiosRequestHeaders } from 'axios';
 import { trimEnd, difference } from 'lodash';
+import * as semver from 'semver';
 
 interface NpmRegistryPackageVersionInfo {
     _id: string;
@@ -74,6 +74,7 @@ interface CopyPackageVersionsOptions {
     toPassword?: string;
     package: string;
     after?: Date;
+    onlyLatestFromEachMajor?: boolean;
 }
 
 export default async function copyPackageVersions({
@@ -87,6 +88,7 @@ export default async function copyPackageVersions({
     toPassword,
     package: packageName,
     after = new Date(0),
+    onlyLatestFromEachMajor = false,
 }: CopyPackageVersionsOptions) {
     console.log(`Copying ${packageName}...`);
 
@@ -110,13 +112,27 @@ export default async function copyPackageVersions({
         console.log(`Package ${packageName} does not exist in the target registry.`);
     }
 
-    const packageVersionsToCopy = difference(Object.keys(sourcePackageInfo.data.versions), Object.keys(targetPackageInfo?.data?.versions || []));
+
+    let packageVersionsToCopy = difference(Object.keys(sourcePackageInfo.data.versions), Object.keys(targetPackageInfo?.data?.versions || []));
+    if (onlyLatestFromEachMajor) {
+        const latestMajorVersions = Object.keys(sourcePackageInfo.data.versions)
+            .filter(version => semver.valid(version))
+            .reduce((acc, version) => {
+                const major = semver.major(version);
+                if (!acc[major] || semver.gt(version, acc[major])) {
+                    acc[major] = version;
+                }
+                return acc;
+            }, {} as Record<string, string>);
+        packageVersionsToCopy = packageVersionsToCopy.filter(version => latestMajorVersions[semver.major(version)] === version);
+    }
+
     if (packageVersionsToCopy.length === 0) {
         console.log('No new versions to copy.');
         return;
     }
 
-    packageVersionsToCopy.sort();
+    packageVersionsToCopy.sort((a, b) => semver.compare(a, b));
 
     console.log(`Package versions to be copied: ${packageVersionsToCopy.join(', ')}`);
 
@@ -136,42 +152,44 @@ export default async function copyPackageVersions({
         console.log(`Downloaded ${packageName}@${packageVersion}.`);
 
         const base64EncodedPackageContent = Buffer.from(downloadedPackage.data, 'binary').toString('base64');
-
-        console.log(`Uploading ${packageName}@${packageVersion}...`);
-
-        // Read the tarball (created with `npm pack` or similar tool)
-        const tarballName = `${versionDetails.name.replace("/", "-").replace("@", "")}-${versionDetails.version}.tgz`;
-
-        // Build the payload
-        const payload = {
-            _id: versionDetails.name,
-            name: versionDetails.name,
-            description: versionDetails.description || '',
-            'dist-tags': { latest: versionDetails.version },
-            versions: {
-                [versionDetails.version]: {
-                    ...versionDetails,
-                    dist: {
-                        tarball: `${sourceRegistry.getPackageUrl(versionDetails.name)}/-/${tarballName}`,
-                        integrity: versionDetails.dist.integrity,
-                        shasum: versionDetails.dist.shasum,
-                    },
-                },
-            },
-            _attachments: {
-                [tarballName]: {
-                    content_type: 'application/octet-stream',
-                    data: base64EncodedPackageContent,
-                },
-            },
-        };
-
-        await axios.put(targetRegistry.getPackageUrl(packageName), payload, {
-            headers: {
-                'Content-Type': 'application/json',
-                ...targetRegistry.getAuthHeaders(),
-            },
-        });
+        /*
+             console.log(`Uploading ${packageName}@${packageVersion}...`);
+     
+             // Read the tarball (created with `npm pack` or similar tool)
+             const tarballName = `${versionDetails.name.replace("/", "-").replace("@", "")}-${versionDetails.version}.tgz`;
+     
+             // Build the payload
+             const payload = {
+                 _id: versionDetails.name,
+                 name: versionDetails.name,
+                 description: versionDetails.description || '',
+                 'dist-tags': { latest: versionDetails.version },
+                 versions: {
+                     [versionDetails.version]: {
+                         ...versionDetails,
+                         dist: {
+                             tarball: `${sourceRegistry.getPackageUrl(versionDetails.name)}/-/${tarballName}`,
+                             integrity: versionDetails.dist.integrity,
+                             shasum: versionDetails.dist.shasum,
+                         },
+                     },
+                 },
+                 _attachments: {
+                     [tarballName]: {
+                         content_type: 'application/octet-stream',
+                         data: base64EncodedPackageContent,
+                     },
+                 },
+             };
+     
+          
+             await axios.put(targetRegistry.getPackageUrl(packageName), payload, {
+                 headers: {
+                     'Content-Type': 'application/json',
+                     ...targetRegistry.getAuthHeaders(),
+                 },
+             });
+             */
         console.log(`Uploaded ${packageName}@${packageVersion}.`);
     }
 

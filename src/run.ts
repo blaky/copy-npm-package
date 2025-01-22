@@ -14,6 +14,7 @@ import copyPackageVersions from '.';
         { name: 'to-password', type: String },
         { name: 'package', type: String },
         { name: 'after', type: String },
+        { name: 'only-latest-from-each-major', type: Boolean },
     ]);
 
     if (!options.from) {
@@ -58,6 +59,7 @@ import copyPackageVersions from '.';
         toPassword: options['to-password'],
         package: options.package,
         after: options.after ? new Date(options.after) : undefined,
+        onlyLatestFromEachMajor: options['only-latest-from-each-major']
     })
 })().catch(err => {
     console.error(err);
