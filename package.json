@@ -1,6 +1,6 @@
 {
   "name": "copy-npm-package",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "main": "build/index.js",
   "scripts": {
     "prepare": "tsc",
@@ -12,7 +12,7 @@
     "url": "git://github.com/blaky/copy-npm-package.git"
   },
   "bin": {
-    "copy-npm-package": "./bin/copy-npm-package"
+    "copy-npm-package": "bin/copy-npm-package"
   },
   "files": [
     "build",
