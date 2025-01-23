@@ -152,44 +152,44 @@ export default async function copyPackageVersions({
         console.log(`Downloaded ${packageName}@${packageVersion}.`);
 
         const base64EncodedPackageContent = Buffer.from(downloadedPackage.data, 'binary').toString('base64');
-        /*
-             console.log(`Uploading ${packageName}@${packageVersion}...`);
-     
-             // Read the tarball (created with `npm pack` or similar tool)
-             const tarballName = `${versionDetails.name.replace("/", "-").replace("@", "")}-${versionDetails.version}.tgz`;
-     
-             // Build the payload
-             const payload = {
-                 _id: versionDetails.name,
-                 name: versionDetails.name,
-                 description: versionDetails.description || '',
-                 'dist-tags': { latest: versionDetails.version },
-                 versions: {
-                     [versionDetails.version]: {
-                         ...versionDetails,
-                         dist: {
-                             tarball: `${sourceRegistry.getPackageUrl(versionDetails.name)}/-/${tarballName}`,
-                             integrity: versionDetails.dist.integrity,
-                             shasum: versionDetails.dist.shasum,
-                         },
-                     },
-                 },
-                 _attachments: {
-                     [tarballName]: {
-                         content_type: 'application/octet-stream',
-                         data: base64EncodedPackageContent,
-                     },
-                 },
-             };
-     
-          
-             await axios.put(targetRegistry.getPackageUrl(packageName), payload, {
-                 headers: {
-                     'Content-Type': 'application/json',
-                     ...targetRegistry.getAuthHeaders(),
-                 },
-             });
-             */
+
+        console.log(`Uploading ${packageName}@${packageVersion}...`);
+
+        // Read the tarball (created with `npm pack` or similar tool)
+        const tarballName = `${versionDetails.name.replace("/", "-").replace("@", "")}-${versionDetails.version}.tgz`;
+
+        // Build the payload
+        const payload = {
+            _id: versionDetails.name,
+            name: versionDetails.name,
+            description: versionDetails.description || '',
+            'dist-tags': { latest: versionDetails.version },
+            versions: {
+                [versionDetails.version]: {
+                    ...versionDetails,
+                    dist: {
+                        tarball: `${sourceRegistry.getPackageUrl(versionDetails.name)}/-/${tarballName}`,
+                        integrity: versionDetails.dist.integrity,
+                        shasum: versionDetails.dist.shasum,
+                    },
+                },
+            },
+            _attachments: {
+                [tarballName]: {
+                    content_type: 'application/octet-stream',
+                    data: base64EncodedPackageContent,
+                },
+            },
+        };
+
+
+        await axios.put(targetRegistry.getPackageUrl(packageName), payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                ...targetRegistry.getAuthHeaders(),
+            },
+        });
+
         console.log(`Uploaded ${packageName}@${packageVersion}.`);
     }
 
